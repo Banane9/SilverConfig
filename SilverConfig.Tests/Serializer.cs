@@ -7,7 +7,17 @@ namespace SilverConfig.Tests
     public class Serializer
     {
         [TestMethod]
-        public void Test()
+        public void Deserializes()
+        {
+            var sC = new SilverConfigXmlSerializer<TestConfig>();
+            var config = sC.Deserialize(TestConfig.Output);
+
+            Assert.AreEqual(config.Test, "Test1");
+            Assert.AreEqual(config.Test2, "Test2");
+        }
+
+        [TestMethod]
+        public void Serializes()
         {
             var sC = new SilverConfigXmlSerializer<TestConfig>();
             Assert.AreEqual(sC.Serialize(new TestConfig { Test = "Test1", Test2 = "Test2" }), TestConfig.Output);

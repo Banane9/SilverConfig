@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace SilverConfig
 {
-    public sealed class SilverConfigXmlSerializer<TConfig> : SilverConfigSerializer<TConfig>
+    public sealed class SilverConfigXmlSerializer<TConfig> : SilverConfigSerializer<TConfig> where TConfig : new()
     {
         private string indentation = "  ";
 
@@ -28,6 +28,28 @@ namespace SilverConfig
         }
 
         [UsedImplicitly]
+        public TConfig Deserialize(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+                return default(TConfig);
+
+            return Deserialize(XDocument.Parse(source).Root);
+        }
+
+        public TConfig Deserialize(XElement root)
+        {
+            if (root == null)
+                return default(TConfig);
+
+            var config = new TConfig();
+
+            foreach (var element in serializationInfos)
+                deserialize(element, config, root);
+
+            return config;
+        }
+
+        [UsedImplicitly]
         public string Serialize([NotNull] TConfig config)
         {
             var root = new XElement(configAttribute.Name ?? configTypeInfo.Name, new XText(Environment.NewLine));
@@ -36,6 +58,19 @@ namespace SilverConfig
                 root.Add(serialize(element, config, 1).Cast<object>().ToArray());
 
             return root.ToString(SaveOptions.DisableFormatting);
+        }
+
+        private void deserialize(SerializationInfo element, object obj, XElement root)
+        {
+            var xElement = root.Element(element.AttributeData.Name ?? element.Member.Name);
+
+            if (xElement == null)
+                throw new Exception("Element with name [" + element.AttributeData.Name ?? element.Member.Name + "] not found.");
+
+            if (element.Member is PropertyInfo)
+                ((PropertyInfo)element.Member).SetValue(obj, xElement.Value);
+            else
+                ((FieldInfo)element.Member).SetValue(obj, xElement.Value);
         }
 
         private IEnumerable<XNode> serialize(SerializationInfo element, object obj, uint level)
