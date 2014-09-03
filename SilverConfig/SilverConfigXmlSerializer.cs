@@ -27,7 +27,12 @@ namespace SilverConfig
             }
         }
 
-        [UsedImplicitly]
+        /// <summary>
+        /// Trys to deserialize the given string into a Config Object.
+        /// </summary>
+        /// <param name="source">The string containing the serialized data.</param>
+        /// <returns>The deserialized Config Object, or null.</returns>
+        [CanBeNull, UsedImplicitly]
         public TConfig Deserialize(string source)
         {
             if (string.IsNullOrWhiteSpace(source))
@@ -36,6 +41,12 @@ namespace SilverConfig
             return Deserialize(XDocument.Parse(source).Root);
         }
 
+        /// <summary>
+        /// Trys to deserialize the given XElement into a Config Object.
+        /// </summary>
+        /// <param name="source">The XElement containing the serialized data.</param>
+        /// <returns>The deserialized Config Object, or null.</returns>
+        [CanBeNull, UsedImplicitly]
         public TConfig Deserialize(XElement root)
         {
             if (root == null)
@@ -49,9 +60,17 @@ namespace SilverConfig
             return config;
         }
 
-        [UsedImplicitly]
+        /// <summary>
+        /// Serializes the given Config Object into a string.
+        /// </summary>
+        /// <param name="config">The Config Object to be serialized.</param>
+        /// <returns>The string containing the data.</returns>
+        [NotNull, UsedImplicitly]
         public string Serialize([NotNull] TConfig config)
         {
+            if (config == null)
+                return string.Empty;
+
             var root = new XElement(configAttribute.Name ?? configTypeInfo.Name, new XText(Environment.NewLine));
 
             foreach (var element in serializationInfos)

@@ -1,16 +1,31 @@
-﻿using System;
+﻿using SilverConfig.Annotations;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace SilverConfig
 {
+    /// <summary>
+    /// Contains information about a Member of a class or struct that will be (de)serialized.
+    /// </summary>
     public sealed class SerializationInfo
     {
+        /// <summary>
+        /// Gets the SilverConfigElementAttribute for the Member.
+        /// </summary>
+        [NotNull]
         public SilverConfigElementAttribute AttributeData { get; private set; }
 
+        /// <summary>
+        /// Gets the MemberInfo for the Member.
+        /// </summary>
         public MemberInfo Member { get; private set; }
 
+        /// <summary>
+        /// Creates a new instance of the <see cref="SerializationInfo"/> class for the given Member.
+        /// </summary>
+        /// <param name="member">The Member that the info is for.</param>
         public SerializationInfo(MemberInfo member)
         {
             var attribute = member.GetCustomAttribute<SilverConfigElementAttribute>();
@@ -22,6 +37,9 @@ namespace SilverConfig
             Member = member;
         }
 
+        /// <summary>
+        /// Comparer for sorting the serialization infos based on their index.
+        /// </summary>
         public sealed class Comparer : IComparer<SerializationInfo>
         {
             public int Compare(SerializationInfo x, SerializationInfo y)
