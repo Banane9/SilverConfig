@@ -14,6 +14,7 @@ namespace SilverConfig.Tests
 
             Assert.AreEqual(config.Test, "Test1");
             Assert.AreEqual(config.Test2, "Test2");
+            Assert.AreEqual(config.TestInt, 0);
         }
 
         [TestMethod]
@@ -33,6 +34,7 @@ namespace SilverConfig.Tests
   <!-- Test
        Comment -->
   <Test>Test1</Test>
+  <TestInt>0</TestInt>
 </TestConfig>";
 
             [SilverConfigElement(Index = 1, NewLineBefore = true, Comment =
@@ -42,6 +44,9 @@ Comment")]
 
             [SilverConfigElement()]
             public string Test2;
+
+            [SilverConfigElement(Index = 2)]
+            public int TestInt;
         }
     }
 }

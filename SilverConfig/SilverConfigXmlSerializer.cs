@@ -68,9 +68,9 @@ namespace SilverConfig
                 throw new Exception("Element with name [" + element.AttributeData.Name ?? element.Member.Name + "] not found.");
 
             if (element.Member is PropertyInfo)
-                ((PropertyInfo)element.Member).SetValue(obj, xElement.Value);
+                ((PropertyInfo)element.Member).SetValue(obj, resolveValue(element.Member, xElement.Value));
             else
-                ((FieldInfo)element.Member).SetValue(obj, xElement.Value);
+                ((FieldInfo)element.Member).SetValue(obj, resolveValue(element.Member, xElement.Value));
         }
 
         private IEnumerable<XNode> serialize(SerializationInfo element, object obj, uint level)
