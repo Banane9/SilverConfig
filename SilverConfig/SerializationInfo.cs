@@ -11,6 +11,8 @@ namespace SilverConfig
     /// </summary>
     public sealed class SerializationInfo
     {
+        private Lazy<SortedSet<SerializationInfo>> _serializationInfos;
+
         /// <summary>
         /// Gets the SilverConfigElementAttribute for the Member.
         /// </summary>
@@ -21,6 +23,14 @@ namespace SilverConfig
         /// Gets the MemberInfo for the Member.
         /// </summary>
         public MemberInfo Member { get; private set; }
+
+        /// <summary>
+        /// Gets the SerializationInfos for the MemberType.
+        /// </summary>
+        public SortedSet<SerializationInfo> SerializationInfos
+        {
+            get { return _serializationInfos.Value; }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="SerializationInfo"/> class for the given Member.
@@ -35,6 +45,18 @@ namespace SilverConfig
 
             AttributeData = attribute;
             Member = member;
+
+            if (member.GetMemberType().GetTypeInfo().IsSilverConfigType())
+                _serializationInfos = new Lazy<SortedSet<SerializationInfo>>(makeSerializationInfo);
+        }
+
+        private SortedSet<SerializationInfo> makeSerializationInfo()
+        {
+            var sortedSet = new SortedSet<SerializationInfo>(new SerializationInfo.Comparer());
+            foreach (var item in Member.GetMemberType().GetTypeInfo().GetSilverConfigElements().Select(element => new SerializationInfo(element)))
+                sortedSet.Add(item);
+
+            return sortedSet;
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 ﻿using SilverConfig.Annotations;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -84,7 +85,7 @@ namespace SilverConfig
             var xElement = root.Element(element.AttributeData.Name ?? element.Member.Name);
 
             if (xElement == null)
-                throw new Exception("Element with name [" + element.AttributeData.Name ?? element.Member.Name + "] not found.");
+                throw new Exception("Element with name [" + (element.AttributeData.Name ?? element.Member.Name) + "] not found.");
 
             if (element.Member is PropertyInfo)
                 ((PropertyInfo)element.Member).SetValue(obj, resolveValue(element.Member, xElement.Value));
@@ -99,21 +100,63 @@ namespace SilverConfig
 
             if (!string.IsNullOrWhiteSpace(element.AttributeData.Comment))
             {
-                var comment = string.Join(Environment.NewLine + indentation.Times(1) + "     ", element.AttributeData.Comment.Split(new string[] { Environment.NewLine }, StringSplitOptions.None));
+                var comment = string.Join(Environment.NewLine + indentation.Times(level) + "     ", element.AttributeData.Comment.Split(new string[] { Environment.NewLine }, StringSplitOptions.None));
 
                 yield return new XText(indentation);
                 yield return new XComment(" " + comment + " ");
                 yield return new XText(Environment.NewLine);
             }
 
+            IEnumerable<XNode> children;
+            if (element.Member is PropertyInfo)
+                children = serializeChild(element, ((PropertyInfo)element.Member).GetValue(obj), level);
+            else
+                children = serializeChild(element, ((FieldInfo)element.Member).GetValue(obj), level);
+
+            foreach (var node in children)
+                yield return node;
+        }
+
+        private IEnumerable<XNode> serializeChild(SerializationInfo element, object value, uint level)
+        {
             var child = new XElement(element.AttributeData.Name ?? element.Member.Name);
+            var valueTypeInfo = value.GetType().GetTypeInfo();
 
             if (element.Member is PropertyInfo)
-                child.Add(((PropertyInfo)element.Member).GetValue(obj));
+            {
+                if (element.Member.GetMemberType().GetTypeInfo().IsArray)
+                {
+                    foreach (var item in (IEnumerable)value)
+                        child.Add(new XText(indentation.Times(level + 1)),
+                            new XElement(element.AttributeData as SilverConfigArrayElementAttribute != null
+                                ? (((SilverConfigArrayElementAttribute)element.AttributeData).ArrayItemName
+                                    ?? ((element.AttributeData.Name ?? element.Member.Name) + "Item"))
+                                : ((element.AttributeData.Name ?? element.Member.Name) + "Item")
+                                , item),
+                            new XText(Environment.NewLine));
+                }
+                else
+                    child.Add(value);
+            }
             else
-                child.Add(((FieldInfo)element.Member).GetValue(obj));
+            {
+                if (element.Member.GetMemberType().GetTypeInfo().IsArray)
+                {
+                    foreach (var item in (IEnumerable)value)
+                        child.Add(new XText(Environment.NewLine + indentation.Times(level + 1)),
+                            new XElement(element.AttributeData as SilverConfigArrayElementAttribute != null
+                                ? (((SilverConfigArrayElementAttribute)element.AttributeData).ArrayItemName
+                                    ?? ((element.AttributeData.Name ?? element.Member.Name) + "Item"))
+                                : ((element.AttributeData.Name ?? element.Member.Name) + "Item")
+                                , item));
 
-            yield return new XText(indentation);
+                    child.Add(new XText(Environment.NewLine + indentation.Times(level)));
+                }
+                else
+                    child.Add(value);
+            }
+
+            yield return new XText(indentation.Times(level));
             yield return child;
             yield return new XText(Environment.NewLine);
         }

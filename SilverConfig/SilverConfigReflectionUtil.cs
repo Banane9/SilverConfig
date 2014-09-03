@@ -26,7 +26,7 @@ namespace SilverConfig
 
         public static bool IsSilverConfigMember(this MemberInfo member)
         {
-            return member.CustomAttributes.Any(attributeData => attributeData.AttributeType == typeof(SilverConfigElementAttribute));
+            return member.CustomAttributes.Any(attributeData => typeof(SilverConfigElementAttribute).GetTypeInfo().IsAssignableFrom(attributeData.AttributeType.GetTypeInfo()));
         }
 
         public static bool IsSilverConfigType(this TypeInfo type)

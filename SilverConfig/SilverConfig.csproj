@@ -40,6 +40,7 @@
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationInfo.cs" />
+    <Compile Include="SilverConfigArrayElementAttribute.cs" />
     <Compile Include="SilverConfigAttribute.cs" />
     <Compile Include="SilverConfigElementAttribute.cs" />
     <Compile Include="SilverConfigReflectionUtil.cs" />

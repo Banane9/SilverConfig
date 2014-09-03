@@ -9,7 +9,7 @@ namespace SilverConfig
     /// Marks a Field or Property as having to be serialized in a <see cref="SilverConfigAttribute"/> class.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public sealed class SilverConfigElementAttribute : Attribute
+    public class SilverConfigElementAttribute : Attribute
     {
         /// <summary>
         /// The comment that will be written over the Element.

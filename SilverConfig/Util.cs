@@ -16,6 +16,16 @@ namespace SilverConfig
             return t.GetTypeInfo().IsValueType ? Activator.CreateInstance(t) : null;
         }
 
+        public static Type GetMemberType(this MemberInfo member)
+        {
+            if (member as PropertyInfo != null)
+                return ((PropertyInfo)member).PropertyType;
+            else if (member as FieldInfo != null)
+                return ((FieldInfo)member).FieldType;
+            else
+                throw new Exception("Member has to be PropertyInfo or FieldInfo.");
+        }
+
         public static bool InheritsOrImplements(this TypeInfo child, TypeInfo parent)
         {
             if (child == null || parent == null)
@@ -55,7 +65,10 @@ namespace SilverConfig
             var timesDone = 1;
 
             while (timesDone < times)
+            {
                 stringBuilder.Append(str);
+                timesDone++;
+            }
 
             return stringBuilder.ToString();
         }

@@ -14,14 +14,14 @@ namespace SilverConfig.Tests
 
             Assert.AreEqual(config.Test, "Test1");
             Assert.AreEqual(config.Test2, "Test2");
-            Assert.AreEqual(config.TestInt, 0);
+            Assert.AreEqual(config.TestInt, 10);
         }
 
         [TestMethod]
         public void Serializes()
         {
             var sC = new SilverConfigXmlSerializer<TestConfig>();
-            Assert.AreEqual(sC.Serialize(new TestConfig { Test = "Test1", Test2 = "Test2" }), TestConfig.Output);
+            Assert.AreEqual(TestConfig.Output, sC.Serialize(new TestConfig()));
         }
 
         [SilverConfig]
@@ -34,19 +34,31 @@ namespace SilverConfig.Tests
   <!-- Test
        Comment -->
   <Test>Test1</Test>
-  <TestInt>0</TestInt>
+  <TestInt>10</TestInt>
+  <TestInts>
+    <TestItem>1</TestItem>
+    <TestItem>1</TestItem>
+    <TestItem>2</TestItem>
+    <TestItem>3</TestItem>
+    <TestItem>5</TestItem>
+    <TestItem>8</TestItem>
+    <TestItem>13</TestItem>
+  </TestInts>
 </TestConfig>";
 
             [SilverConfigElement(Index = 1, NewLineBefore = true, Comment =
 @"Test
 Comment")]
-            public string Test;
+            public string Test = "Test1";
 
             [SilverConfigElement()]
-            public string Test2;
+            public string Test2 = "Test2";
 
             [SilverConfigElement(Index = 2)]
-            public int TestInt;
+            public int TestInt = 10;
+
+            [SilverConfigArrayElement(ArrayItemName = "TestItem", Index = 3)]
+            public int[] TestInts = { 1, 1, 2, 3, 5, 8, 13 };
         }
     }
 }
