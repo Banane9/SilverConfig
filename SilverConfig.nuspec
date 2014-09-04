@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>SilverConfig</id>
+        <version>0.1.0</version>
+        <title>Silver Config</title>
+        <authors>Banane9</authors>
+        <owners>Banane9</owners>
+        <licenseUrl>https://github.com/Banane9/SilverConfig/blob/master/LICENSE.md</licenseUrl>
+        <projectUrl>https://github.com/Banane9/SilverConfig</projectUrl>
+        <iconUrl>http://banane9.github.io/favicon.ico</iconUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Silver Config allows you to annotate a class with attributes, similiar to those for the XmlSerializer or Json.Net, but allows to add comments for elements, define the order, and to separate them with new lines. This makes the configuration file easier to read and modify by the user.</description>
+        <summary>Library for easy Configuration Generation.</summary>
+        <releaseNotes>First Release with basic usage possibilities.</releaseNotes>
+        <copyright />
+        <language>en</language>
+        <tags>silver, config, xml, generation, serialization, serializer, deserialization, deserializer, simple</tags>
+    </metadata>
+    <files>
+        <file src="C:\Users\Banane9\Documents\Visual Studio 2013\Projects\SilverConfig\SilverConfig\bin\Release\SilverConfig.dll" target="lib\portable-net45+wp8+win8\SilverConfig.dll" />
+        <file src="C:\Users\Banane9\Documents\Visual Studio 2013\Projects\SilverConfig\SilverConfig\bin\Release\SilverConfig.xml" target="lib\portable-net45+wp8+win8\SilverConfig.xml" />
+    </files>
+</package>
