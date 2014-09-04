@@ -9,7 +9,6 @@ namespace SilverConfig.Tests
         [TestMethod]
         public void Deserializes()
         {
-            Console.WriteLine(typeof(int[]));
             var sC = new SilverConfigXmlSerializer<TestConfig>();
             var config = sC.Deserialize(TestConfig.Output);
 
