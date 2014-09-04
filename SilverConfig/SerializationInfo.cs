@@ -13,6 +13,13 @@ namespace SilverConfig
     {
         private Lazy<SortedSet<SerializationInfo>> _serializationInfos;
 
+        private TypeInfo memberTypeInfo;
+
+        /// <summary>
+        /// Gets the name for array-items for the Member.
+        /// </summary>
+        public string ArrayItemName { get; private set; }
+
         /// <summary>
         /// Gets the SilverConfigElementAttribute for the Member.
         /// </summary>
@@ -23,6 +30,11 @@ namespace SilverConfig
         /// Gets the MemberInfo for the Member.
         /// </summary>
         public MemberInfo Member { get; private set; }
+
+        /// <summary>
+        /// Gets the name for elements for the Member.
+        /// </summary>
+        public string Name { get; private set; }
 
         /// <summary>
         /// Gets the SerializationInfos for the MemberType.
@@ -46,14 +58,32 @@ namespace SilverConfig
             AttributeData = attribute;
             Member = member;
 
-            if (member.GetMemberType().GetTypeInfo().IsSilverConfigType())
+            var memberTypeInfoTemp = member.GetMemberType().GetTypeInfo();
+
+            if (memberTypeInfoTemp.IsSilverConfigType())
+                memberTypeInfo = memberTypeInfoTemp;
+            else if (memberTypeInfoTemp.IsArray && memberTypeInfoTemp.GetElementType().GetTypeInfo().IsSilverConfigType())
+                memberTypeInfo = memberTypeInfoTemp.GetElementType().GetTypeInfo();
+
+            if (memberTypeInfo != null)
                 _serializationInfos = new Lazy<SortedSet<SerializationInfo>>(makeSerializationInfo);
+            else
+                _serializationInfos = new Lazy<SortedSet<SerializationInfo>>(() => new SortedSet<SerializationInfo>());
+
+            Name = (attribute.Name ?? member.Name).Replace(' ', '_');
+
+            if (attribute as SilverConfigArrayElementAttribute != null)
+                ArrayItemName = ((SilverConfigArrayElementAttribute)attribute).ArrayItemName;
+
+            if (ArrayItemName == null)
+                ArrayItemName = Name + "Item";
         }
 
         private SortedSet<SerializationInfo> makeSerializationInfo()
         {
             var sortedSet = new SortedSet<SerializationInfo>(new SerializationInfo.Comparer());
-            foreach (var item in Member.GetMemberType().GetTypeInfo().GetSilverConfigElements().Select(element => new SerializationInfo(element)))
+
+            foreach (var item in memberTypeInfo.GetSilverConfigElements().Select(element => new SerializationInfo(element)))
                 sortedSet.Add(item);
 
             return sortedSet;

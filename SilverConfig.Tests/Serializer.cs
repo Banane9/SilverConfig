@@ -9,12 +9,20 @@ namespace SilverConfig.Tests
         [TestMethod]
         public void Deserializes()
         {
+            Console.WriteLine(typeof(int[]));
             var sC = new SilverConfigXmlSerializer<TestConfig>();
             var config = sC.Deserialize(TestConfig.Output);
 
             Assert.AreEqual(config.Test, "Test1");
             Assert.AreEqual(config.Test2, "Test2");
             Assert.AreEqual(config.TestInt, 10);
+
+            var i = 0;
+            foreach (var value in new[] { 1, 1, 2, 3, 5, 8, 13 })
+            {
+                Assert.AreEqual(value, config.TestInts[i]);
+                i++;
+            }
         }
 
         [TestMethod]

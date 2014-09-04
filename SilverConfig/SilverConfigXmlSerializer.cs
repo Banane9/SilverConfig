@@ -10,6 +10,7 @@ namespace SilverConfig
 {
     public sealed class SilverConfigXmlSerializer<TConfig> : SilverConfigSerializer<TConfig> where TConfig : new()
     {
+        private static MethodInfo toArray = typeof(Enumerable).GetTypeInfo().GetDeclaredMethod("ToArray");
         private string indentation = "  ";
 
         /// <summary>
@@ -21,79 +22,82 @@ namespace SilverConfig
             get { return indentation; }
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException("value", "Value can't be null.");
-
-                indentation = value;
+                indentation = value ?? string.Empty;
             }
         }
 
-        /// <summary>
-        /// Trys to deserialize the given string into a Config Object.
-        /// </summary>
-        /// <param name="source">The string containing the serialized data.</param>
-        /// <returns>The deserialized Config Object, or null.</returns>
-        [CanBeNull, UsedImplicitly]
-        public TConfig Deserialize(string source)
+        protected override TConfig deserialize(string source)
         {
-            if (string.IsNullOrWhiteSpace(source))
-                return default(TConfig);
-
-            return Deserialize(XDocument.Parse(source).Root);
-        }
-
-        /// <summary>
-        /// Trys to deserialize the given XElement into a Config Object.
-        /// </summary>
-        /// <param name="source">The XElement containing the serialized data.</param>
-        /// <returns>The deserialized Config Object, or null.</returns>
-        [CanBeNull, UsedImplicitly]
-        public TConfig Deserialize(XElement root)
-        {
-            if (root == null)
-                return default(TConfig);
-
             var config = new TConfig();
 
             foreach (var element in serializationInfos)
-                deserialize(element, config, root);
+                deserializeElement(element, config, XDocument.Parse(source).Root);
 
             return config;
         }
 
-        /// <summary>
-        /// Serializes the given Config Object into a string.
-        /// </summary>
-        /// <param name="config">The Config Object to be serialized.</param>
-        /// <returns>The string containing the data.</returns>
-        [NotNull, UsedImplicitly]
-        public string Serialize([NotNull] TConfig config)
+        protected override string serialize(TConfig config)
         {
-            if (config == null)
-                return string.Empty;
-
             var root = new XElement(configAttribute.Name ?? configTypeInfo.Name, new XText(Environment.NewLine));
 
             foreach (var element in serializationInfos)
-                root.Add(serialize(element, config, 1).Cast<object>().ToArray());
+                root.Add(serializeElement(element, config, 1).Cast<object>().ToArray());
 
             return root.ToString(SaveOptions.DisableFormatting);
         }
 
-        private void deserialize(SerializationInfo element, object obj, XElement root)
+        private void deserializeElement(SerializationInfo element, object obj, XElement root)
         {
-            var xElement = root.Element(element.AttributeData.Name ?? element.Member.Name);
+            var xElement = root.Element(element.Name);
 
             if (xElement == null)
-                throw new Exception("Element with name [" + (element.AttributeData.Name ?? element.Member.Name) + "] not found.");
+                throw new Exception("Element with name [" + element.Name + "] not found.");
 
-            if (element.Member is PropertyInfo)
-                ((PropertyInfo)element.Member).SetValue(obj, resolveValue(element.Member, xElement.Value));
+            // Simple element(s)
+            if (element.SerializationInfos.Count == 0)
+            {
+                if (!element.Member.GetMemberType().GetTypeInfo().IsArray)
+                    element.Member.SetMemberValue(obj, parseValue(element.Member.GetMemberType(), xElement.Value));
+                else
+                {
+                    var elementType = element.Member.GetMemberType().GetTypeInfo().GetElementType();
+                    var valueList = Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                    var addMethod = valueList.GetType().GetTypeInfo().GetDeclaredMethod("Add");
+                    foreach (var item in xElement.Elements().Select(valueElement => parseValue(elementType, valueElement.Value)))
+                        addMethod.Invoke(valueList, new object[] { item });
+
+                    element.Member.SetMemberValue(obj, toArray.MakeGenericMethod(elementType).Invoke(null, new object[] { valueList }));
+                }
+            }
+            // Complex element(s)
             else
-                ((FieldInfo)element.Member).SetValue(obj, resolveValue(element.Member, xElement.Value));
+            {
+                if (!element.Member.GetMemberType().GetTypeInfo().IsArray)
+                {
+                    var elementObj = Activator.CreateInstance(element.Member.GetMemberType());
+                    foreach (var subElement in element.SerializationInfos)
+                        deserializeElement(subElement, elementObj, xElement);
+
+                    element.Member.SetMemberValue(obj, elementObj);
+                }
+                else
+                {
+                    var elementType = element.Member.GetMemberType().GetTypeInfo().GetElementType();
+                    var elementObjs = xElement.Elements().Select(valueElement =>
+                        {
+                            var elementObj = Activator.CreateInstance(elementType);
+                            foreach (var subElement in element.SerializationInfos)
+                                deserializeElement(subElement, elementObj, xElement);
+
+                            return elementObj;
+                        }).ToArray();
+
+                    element.Member.SetMemberValue(obj, elementObjs);
+                }
+            }
         }
 
-        private IEnumerable<XNode> serialize(SerializationInfo element, object obj, uint level)
+        private IEnumerable<XNode> serializeElement(SerializationInfo element, object obj, uint level)
         {
             if (element.AttributeData.NewLineBefore)
                 yield return new XText(Environment.NewLine);
@@ -107,56 +111,53 @@ namespace SilverConfig
                 yield return new XText(Environment.NewLine);
             }
 
-            IEnumerable<XNode> children;
-            if (element.Member is PropertyInfo)
-                children = serializeChild(element, ((PropertyInfo)element.Member).GetValue(obj), level);
-            else
-                children = serializeChild(element, ((FieldInfo)element.Member).GetValue(obj), level);
+            yield return new XText(indentation.Times(level));
 
-            foreach (var node in children)
-                yield return node;
-        }
+            var child = new XElement(element.Name);
+            var value = element.Member.GetMemberValue(obj);
 
-        private IEnumerable<XNode> serializeChild(SerializationInfo element, object value, uint level)
-        {
-            var child = new XElement(element.AttributeData.Name ?? element.Member.Name);
-            var valueTypeInfo = value.GetType().GetTypeInfo();
-
-            if (element.Member is PropertyInfo)
+            // Simple element(s)
+            if (element.SerializationInfos.Count == 0)
             {
-                if (element.Member.GetMemberType().GetTypeInfo().IsArray)
-                {
-                    foreach (var item in (IEnumerable)value)
-                        child.Add(new XText(indentation.Times(level + 1)),
-                            new XElement(element.AttributeData as SilverConfigArrayElementAttribute != null
-                                ? (((SilverConfigArrayElementAttribute)element.AttributeData).ArrayItemName
-                                    ?? ((element.AttributeData.Name ?? element.Member.Name) + "Item"))
-                                : ((element.AttributeData.Name ?? element.Member.Name) + "Item")
-                                , item),
-                            new XText(Environment.NewLine));
-                }
+                if (!element.Member.GetMemberType().GetTypeInfo().IsArray)
+                    child.Value = value.ToString();
                 else
-                    child.Add(value);
-            }
-            else
-            {
-                if (element.Member.GetMemberType().GetTypeInfo().IsArray)
                 {
                     foreach (var item in (IEnumerable)value)
+                    {
                         child.Add(new XText(Environment.NewLine + indentation.Times(level + 1)),
-                            new XElement(element.AttributeData as SilverConfigArrayElementAttribute != null
-                                ? (((SilverConfigArrayElementAttribute)element.AttributeData).ArrayItemName
-                                    ?? ((element.AttributeData.Name ?? element.Member.Name) + "Item"))
-                                : ((element.AttributeData.Name ?? element.Member.Name) + "Item")
-                                , item));
+                                  new XElement(element.ArrayItemName, item.ToString()));
+                    }
 
                     child.Add(new XText(Environment.NewLine + indentation.Times(level)));
                 }
+            }
+            // Complex element(s)
+            else
+            {
+                if (!element.Member.GetMemberType().GetTypeInfo().IsArray)
+                {
+                    foreach (var subElement in element.SerializationInfos)
+                        child.Add(serializeElement(subElement, value, level + 1));
+
+                    child.Add(new XText(indentation.Times(level)));
+                }
                 else
-                    child.Add(value);
+                {
+                    foreach (var item in (IEnumerable)value)
+                    {
+                        var subChild = new XElement(element.ArrayItemName);
+
+                        foreach (var subElement in element.SerializationInfos)
+                            subChild.Add(serializeElement(subElement, value, level + 2));
+
+                        subChild.Add(new XText(indentation.Times(level + 1)));
+
+                        child.Add(subChild, new XText(Environment.NewLine + indentation.Times(level)));
+                    }
+                }
             }
 
-            yield return new XText(indentation.Times(level));
             yield return child;
             yield return new XText(Environment.NewLine);
         }
