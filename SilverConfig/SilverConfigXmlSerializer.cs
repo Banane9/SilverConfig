@@ -83,16 +83,18 @@ namespace SilverConfig
                 else
                 {
                     var elementType = element.Member.GetMemberType().GetTypeInfo().GetElementType();
-                    var elementObjs = xElement.Elements().Select(valueElement =>
-                        {
-                            var elementObj = Activator.CreateInstance(elementType);
-                            foreach (var subElement in element.SerializationInfos)
-                                deserializeElement(subElement, elementObj, xElement);
+                    var valueList = Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                    var addMethod = valueList.GetType().GetTypeInfo().GetDeclaredMethod("Add");
+                    foreach (var valueElement in xElement.Elements(element.ArrayItemName))
+                    {
+                        var elementObj = Activator.CreateInstance(elementType);
+                        foreach (var subElement in element.SerializationInfos)
+                            deserializeElement(subElement, elementObj, valueElement);
 
-                            return elementObj;
-                        }).ToArray();
+                        addMethod.Invoke(valueList, new object[] { elementObj });
+                    }
 
-                    element.Member.SetMemberValue(obj, elementObjs);
+                    element.Member.SetMemberValue(obj, toArray.MakeGenericMethod(elementType).Invoke(null, new object[] { valueList }));
                 }
             }
         }
@@ -137,6 +139,8 @@ namespace SilverConfig
             {
                 if (!element.Member.GetMemberType().GetTypeInfo().IsArray)
                 {
+                    child.Add(new XText(Environment.NewLine));
+
                     foreach (var subElement in element.SerializationInfos)
                         child.Add(serializeElement(subElement, value, level + 1));
 
@@ -146,10 +150,13 @@ namespace SilverConfig
                 {
                     foreach (var item in (IEnumerable)value)
                     {
+                        child.Add(new XText(Environment.NewLine + indentation.Times(level + 1)));
+
                         var subChild = new XElement(element.ArrayItemName);
 
                         foreach (var subElement in element.SerializationInfos)
-                            subChild.Add(serializeElement(subElement, value, level + 2));
+                            subChild.Add(new XText(Environment.NewLine),
+                                         serializeElement(subElement, item, level + 2));
 
                         subChild.Add(new XText(indentation.Times(level + 1)));
 

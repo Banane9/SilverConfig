@@ -23,6 +23,11 @@ namespace SilverConfig.Tests
                 Assert.AreEqual(value, config.TestInts[i]);
                 i++;
             }
+
+            for (var n = 0; n < 3; n++)
+                Assert.AreEqual(false, config.SubConfigs[n].Bool);
+
+            Assert.AreEqual(false, config.SingleSubConfig.Bool);
         }
 
         [TestMethod]
@@ -52,7 +57,30 @@ namespace SilverConfig.Tests
     <TestItem>8</TestItem>
     <TestItem>13</TestItem>
   </TestInts>
+
+  <SubConfigs>
+    <SubConfigsItem>
+      <Bool>False</Bool>
+    </SubConfigsItem>
+" + "  " + @"
+    <SubConfigsItem>
+      <Bool>False</Bool>
+    </SubConfigsItem>
+" + "  " + @"
+    <SubConfigsItem>
+      <Bool>False</Bool>
+    </SubConfigsItem>
+  </SubConfigs>
+  <SingleSubConfig>
+    <Bool>False</Bool>
+  </SingleSubConfig>
 </TestConfig>";
+
+            [SilverConfigElement(Index = 5)]
+            public SubConfig SingleSubConfig = new SubConfig();
+
+            [SilverConfigArrayElement(Index = 4, NewLineBefore = true)]
+            public SubConfig[] SubConfigs = { new SubConfig(), new SubConfig(), new SubConfig() };
 
             [SilverConfigElement(Index = 1, NewLineBefore = true, Comment =
 @"Test
@@ -67,6 +95,13 @@ Comment")]
 
             [SilverConfigArrayElement(ArrayItemName = "TestItem", Index = 3)]
             public int[] TestInts = { 1, 1, 2, 3, 5, 8, 13 };
+
+            [SilverConfig]
+            public class SubConfig
+            {
+                [SilverConfigElement]
+                public bool Bool { get; private set; }
+            }
         }
     }
 }
