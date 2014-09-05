@@ -60,4 +60,4 @@ var exampleConfigInstanceWithSameData = serializer.Deserialize(serializedConfig)
 
 ##License##
 
-#####[GPL V2](https://github.com/Banane9/SilverConfig/blob/master/LICENSE.md)#####
+#####[LGPL V2.1](https://github.com/Banane9/SilverConfig/blob/master/LICENSE.md)#####
